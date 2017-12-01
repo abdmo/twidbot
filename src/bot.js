@@ -1,24 +1,24 @@
 // Dependencies
 var request = require('request'),
-    TwitterBot = require('node-twitterbot').TwitterBot,
+    Twitter = require('twitter'),
     config = require('./config.json')
 
 // Config options
 const POSTS_PER_INTERVAL = 100,
-      INTERVAL_MINUTES = 10,
+      INTERVAL_MINUTES = 5,
       MIN_SCORE = 2000,
-      MAX_TWEET_TEXT_COUNT = 116,
-      subreddits = config.subreddits
+      MAX_TWEET_TEXT_COUNT = 140,
+      SUBREDDITS = config.subreddits
 
-// Twitter Bot credentials
-var Bot = new TwitterBot({
-    'consumer_secret': config.consumer_secret,
+var bot = new Twitter({
     'consumer_key': config.consumer_key,
-    'access_token': config.access_token,
+    'consumer_secret': config.consumer_secret,
+    'access_token_key': config.access_token,
     'access_token_secret': config.access_token_secret
-}),
-    marker = [],
-    url = 'https://www.reddit.com/r/' + subreddits.join('+') +'/top.json?t=day';
+});
+
+// var marker = [];
+var url = 'https://www.reddit.com/r/' + SUBREDDITS.join('+') +'/hot.json?t=day';
 
 TopReddit();
 setInterval(TopReddit, (INTERVAL_MINUTES * 60 * 1000));
@@ -30,68 +30,33 @@ function TopReddit() {
 	json: true
     }, function (error, response, body) {
 	if (!error && response.statusCode === 200) {
-    	    
-	    // Erase posts made 2 days ago from local memory
-	    marker[DayBeforeYesterday()] = undefined;
-
-	    // Initialize array for today's marker if it is not initialized already
-	    if (marker[Today()] === undefined) {
-		marker[Today()] = [];
-	    }
-	    if (marker[Yesterday()] === undefined) {
-		marker[Yesterday()] = [];
-	    }
-
+    	    console.log('Tweeting...');
+	    
 	    var posts = body.data.children;
-	    var current_interval_posts = 0;
-
+	    
 	    // Go through all the reddit posts that have been fetched from reddit API earlier
-	    for (i = 0; i < posts.length && current_interval_posts < POSTS_PER_INTERVAL; i++) {
-
-	    	// Tweet post only if it has not been posted before and if the post score is above the required min score
-	    	if (marker[Today()][posts[i].data.id] === undefined && marker[Yesterday()][posts[i].data.id] === undefined && posts[i].data.score > MIN_SCORE) {
-	    	    marker[Today()][posts[i].data.id] = true;
-	    	    current_interval_posts++;
-	    	    var linkSuffix = ' http://redd.it/' + posts[i].data.id;
-		    var subreddit = '[r/' + posts[i].data.subreddit + '] ';
-		    var title = subreddit + posts[i].data.title;
-
-	    	    // Trim the title if total tweet length exceeds 140 characters
-	    	    while (title.length > MAX_TWEET_TEXT_COUNT) {
-	    		title = title.substring(0, title.lastIndexOf(' ')) + '...';
-	    	    }
-
-	    	    // Post tweet
-	    	    var twitter_post = title + linkSuffix;
-	    	    var tweetAction = Bot.addAction('tweet', function(twitter, action, tweet) {
-			Bot.tweet(twitter_post);
-		    });
-	    	    Bot.now(tweetAction);
+	    for (i = 0; i < posts.length; ++i) {
+		var linkSuffix = ' ' +  posts[i].data.url;//' http://redd.it/' + posts[i].data.id;
+		var subreddit = '[r/' + posts[i].data.subreddit + '] ';
+		var title = subreddit + posts[i].data.title;
+		
+	    	// Trim the title if total tweet length exceeds 140 characters
+	    	while (title.length > MAX_TWEET_TEXT_COUNT) {
+	    	    title = title.substring(0, title.lastIndexOf(' ')) + '...';
 	    	}
+		
+		// Post tweet
+	    	var tweet_post = title + linkSuffix;
+		bot.post('statuses/update', {status: tweet_post}, function(error, tweet, response) {
+		    if (!error) {
+			console.log(tweet);
+		    } else {
+			console.log(error);
+		    }
+		});
 	    }
-	}
-	else {
+	} else {
     	    console.error('An error occurred while fetching data from: ' + url + '\nResponse: ' + response.statusCode  + '\n'  + error);
 	}
     })
-}
-
-// Returns the date in YYYYMMDD format of the date 48 hours ago
-function DayBeforeYesterday() {
-    var day = new Date();
-    day.setDate(day.getDate() - 2);
-    return day.toISOString().substring(0, 10);
-}
-
-// Returns the date in YYYYMMDD format of the date 48 hours ago
-function Yesterday() {
-    var day = new Date();
-    day.setDate(day.getDate() - 1);
-    return day.toISOString().substring(0, 10);
-}
-
-// Returns the current date in YYYYMMDD format
-function Today() {
-    var day = new Date();
-    return day.toISOString().substring(0, 10);
 }
