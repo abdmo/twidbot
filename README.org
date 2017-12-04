@@ -1,0 +1,40 @@
+** About
+   Twitter [[https://twitter.com/yutheredditbot][bot]] that tweets posts from my favorite subreddits. Hosted on Amazon EC2.
+
+
+** Setup
+
+*** Install node
+#+BEGIN_SRC
+$ sudo apt-get update
+$ sudo apt-get install node
+#+END_SRC
+
+**** Install node on Amazon EC2
+     http://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html
+
+
+*** Install dependencies
+#+BEGIN_SRC 
+$ npm install
+#+END_SRC
+    
+*** Run app
+#+BEGIN_SRC
+$ npm start
+#+END_SRC
+
+
+** TODOs [0%]
+- [ ] auto post photos
+- [ ] auto post gifs
+- [ ] auto-clean timeline every month
+
+
+
+** Reference:  
+   https://medium.freecodecamp.org/easily-set-up-your-own-twitter-bot-4aeed5e61f7f  
+   https://github.com/spences10/twitter-bot-bootstrap  
+   https://pythontips.com/2013/09/14/making-a-reddit-twitter-bot/  
+   https://github.com/rhiever/reddit-twitter-bot  
+
